@@ -185,7 +185,7 @@ test('every footnote rule has a v1 status', () => {
   const ids = std.footnote_rules.map(r => r.id).sort();
   assert.deepEqual(Object.keys(RULE_STATUS).sort(), ids);
   for (const s of Object.values(RULE_STATUS)) {
-    assert.ok(['implemented', 'pending', 'noted', 'deferred'].includes(s));
+    assert.ok(['implemented', 'noted', 'deferred'].includes(s));
   }
 });
 
