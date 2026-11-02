@@ -178,8 +178,8 @@ dd{margin:0;font:500 .95rem var(--mono)}
     <h2>Decisions this session</h2>
     <ul class="decisions">
       <li><b>Confirmed:</b> horizontal OES on by default (circling assumed), as the closest match to the legacy inner horizontal and conical. Straight-in OES appears only when circling is turned off on a non-precision runway.</li>
-      <li><b>To confirm:</b> Code F footnotes are driven by a "digital go-around steering fitted" input, default no.</li>
-      <li><b>To confirm:</b> MTOM 5 700 kg or less with ADG IIC or above falls back to Table 4-15, with a warning.</li>
+      <li><b>Confirmed:</b> Code F footnotes are driven by a "digital go-around steering fitted" input, default no.</li>
+      <li><b>Confirmed:</b> MTOM 5 700 kg or less with ADG IIC or above falls back to Table 4-15, with a warning.</li>
     </ul>
   </section>
 
