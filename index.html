@@ -23,6 +23,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-ui)}
 ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-family:var(--f-mono);font-size:12px}
 li span{display:inline-block;width:3.2em}
 .ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:var(--muted)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap}
+.ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--fg);cursor:pointer}
+.ctl button:focus-visible{outline:2px solid var(--ok)}
 .attr{font-size:11px;color:var(--muted)}
 </style>
 
@@ -38,6 +41,10 @@ li span{display:inline-block;width:3.2em}
     <li id="s-img"><span class="wait">…</span>Imagery tiles (Esri)</li>
     <li id="s-dem"><span class="wait">…</span>Terrain tiles (AWS Terrarium)</li>
     <li id="s-3d"><span class="wait">…</span>3D surface drawn</li>
+  </ul>
+  <div class="ctl"><button id="b-ter" type="button">Terrain: on</button><button id="b-mode" type="button">Overlay: separate</button></div>
+  <div class="sub">Yellow line: OurAirports centre line drawn by MapLibre (data check). White and orange: deck.gl (renderer check). They should coincide.</div>
+  <ul hidden>
   </ul>
   <div class="attr">Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Runway: OurAirports.</div>
 </div>
@@ -79,11 +86,20 @@ if(okLib){
   map.on('sourcedata',e=>{if(e.tile&&e.sourceId in seen&&seen[e.sourceId]===null){seen[e.sourceId]=true;set(e.sourceId==='img'?'s-img':'s-dem',true);}});
   map.on('error',e=>{const id=e.sourceId||(e.source&&e.source.id);if(id in seen&&!seen[id]){seen[id]=false;set(id==='img'?'s-img':'s-dem',false,'BLKD');}});
   setTimeout(()=>{for(const k in seen) if(seen[k]===null) set(k==='img'?'s-img':'s-dem',false,'NONE');},12000);
-  const overlay=new deck.MapboxOverlay({interleaved:false,layers:[
-    new deck.PolygonLayer({id:'rwy',data:[{p:rwy}],getPolygon:d=>d.p,getFillColor:[245,245,245,230],stroked:false}),
-    new deck.PolygonLayer({id:'appr',data:[{p:appr}],getPolygon:d=>d.p,getFillColor:[255,150,40,90],getLineColor:[255,150,40,255],lineWidthMinPixels:2,stroked:true,wireframe:true,extruded:false})
-  ],onAfterRender:()=>set('s-3d',true)});
-  map.addControl(overlay);
+  const layers=()=>[
+    new deck.PolygonLayer({id:'rwy',data:[{p:rwy}],getPolygon:d=>d.p,getFillColor:[245,245,245,200],stroked:false}),
+    new deck.PolygonLayer({id:'appr',data:[{p:appr}],getPolygon:d=>d.p,getFillColor:[255,150,40,90],getLineColor:[255,150,40,255],lineWidthMinPixels:2,stroked:true,extruded:false})];
+  let interleaved=false, overlay=null;
+  const mount=()=>{ if(overlay) map.removeControl(overlay);
+    overlay=new deck.MapboxOverlay({interleaved,layers:layers(),onAfterRender:()=>set('s-3d',true)}); map.addControl(overlay);
+    document.getElementById('b-mode').textContent='Overlay: '+(interleaved?'interleaved':'separate'); };
+  map.on('load',()=>{
+    map.addSource('cl',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[[LE.lon,LE.lat],[HE.lon,HE.lat]]}}});
+    map.addLayer({id:'cl',type:'line',source:'cl',paint:{'line-color':'#ffd400','line-width':2}});
+    mount();
+  });
+  document.getElementById('b-mode').onclick=()=>{interleaved=!interleaved;mount();};
+  let ter=true; document.getElementById('b-ter').onclick=(e)=>{ter=!ter;map.setTerrain(ter?{source:'dem',exaggeration:1}:null);e.target.textContent='Terrain: '+(ter?'on':'off');};
 } else { ['s-img','s-dem','s-3d'].forEach(i=>set(i,false,'n/a')); }
 </script>
 </body></html>
