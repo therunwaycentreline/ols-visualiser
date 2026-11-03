@@ -333,7 +333,7 @@ dd{margin:0;font:500 .95rem var(--mono)}
       <li>Take-off climb and departure inner edges take the runway end elevation. The "highest point between runway end and inner edge" needs clearway ground data.</li>
       <li>Strip beyond each runway end defaults to 60 m and aerodrome elevation to the highest threshold. Both are inputs.</li>
       <li>OFS inner approach starts at the OFS approach inner edge distance (60 m, or 30 m for NI ADG I), as a rectangle in the approach plane.</li>
-      <li>Precision approach OES transitional rises from the sides of the approach, the lower component and the missed approach until it reaches 300 m above threshold.</li>
+      <li><b>Confirmed:</b> precision approach OES transitional rises from both approach sections, the lower component and both missed approach sections until it reaches 300 m above threshold (Figure 4-6).</li>
       <li>Both runway directions use the same approach type in v1.</li>
     </ul>
   </section>

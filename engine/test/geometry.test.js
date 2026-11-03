@@ -239,3 +239,10 @@ test('no footnote rule is left pending', () => {
   assert.deepEqual(Object.entries(RULE_STATUS).filter(([, s]) => s === 'pending'), []);
   for (const r of std.footnote_rules) assert.ok(['implemented', 'noted', 'deferred'].includes(RULE_STATUS[r.id]), r.id);
 });
+
+test('precision approach OES transitional runs along both approach and both missed approach sections (Figure 4-6)', () => {
+  // Approach 2nd section, 1 000 m into it: edge 750 m out at 95 m; 100 m further out at 14.3%.
+  near(zAt(A, 'oes_precision', -4060, 850), 95 + 14.3, 1e-9);
+  // Missed approach 2nd section, 1 000 m into it: edge 714.64 m out at 80 m.
+  near(zAt(A, 'oes_precision', 3700, 714.64 + 100), 80 + 14.3, 1e-9);
+});
