@@ -177,7 +177,7 @@ const flat = (pts2d, z) => pts2d.map(([x, y]) => [x, y, z]);
 
 // ---------------------------------------------------------------- height queries
 
-function onSegment(px, py, a, b) {
+export function onSegment(px, py, a, b) {
   const [ax, ay] = a, [bx, by] = b;
   const cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
   const len = Math.hypot(bx - ax, by - ay);
@@ -186,7 +186,7 @@ function onSegment(px, py, a, b) {
     && py >= Math.min(ay, by) - 1e-6 && py <= Math.max(ay, by) + 1e-6;
 }
 
-function inPoly(v, x, y) {
+export function inPoly(v, x, y) {
   let inside = false;
   for (let i = 0, j = v.length - 1; i < v.length; j = i++) {
     if (onSegment(x, y, v[j], v[i])) return true;

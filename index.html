@@ -1,247 +1,120 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>OLS v OFS/OES</title>
-<style>
-:root{
-  --bg:#e9ecef; --panel:#ffffffee; --fg:#17202a; --muted:#5b6672; --line:#c9d0d6; --warn:#9a5b00;
-  --ols:#e0a100; --ofs:#d63939; --oes:#2e7de6;
-  --f-ui:"IBM Plex Sans", system-ui, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, monospace;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#11161b;--panel:#1a2128ee;--fg:#e6ebef;--muted:#9aa6b1;--line:#2c3640;--warn:#f0b35a;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#11161b;--panel:#1a2128ee;--fg:#e6ebef;--muted:#9aa6b1;--line:#2c3640;--warn:#f0b35a;color-scheme:dark}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--f-ui)}
-#map{position:absolute;inset:0}
-.maplibregl-map{position:relative;overflow:hidden}
-.maplibregl-canvas{position:absolute;left:0;top:0}
-.maplibregl-canvas-container.maplibregl-interactive{cursor:grab}
-#panel{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));
-  width:min(330px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);
-  border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.45;display:grid;gap:10px;z-index:2;box-sizing:border-box}
-h1{font-size:14px;margin:0;text-wrap:balance} h2{font-size:12px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.sub{color:var(--muted);font-size:12px}
-details>summary{cursor:pointer;font-weight:600;font-size:12px}
-.set{display:grid;gap:2px}
-.set label{display:flex;gap:6px;align-items:center;font-size:12.5px;cursor:pointer}
-.set label.head{font-weight:600}
-.sw{width:12px;height:12px;border-radius:2px;flex:none;border:1.5px solid}
-.sw.ols{background:color-mix(in srgb,var(--ols) 40%,transparent);border-color:var(--ols);border-style:dashed}
-.sw.ofs{background:color-mix(in srgb,var(--ofs) 40%,transparent);border-color:var(--ofs)}
-.sw.oes{background:color-mix(in srgb,var(--oes) 40%,transparent);border-color:var(--oes)}
-.indent{padding-left:18px}
-table{border-collapse:collapse;font-size:12px;width:100%}
-td,th{padding:1px 4px 1px 0;text-align:left;vertical-align:top}
-td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap}
-.src{font-size:10.5px;color:var(--muted)} .src.fb{color:var(--warn)}
-.warn{color:var(--warn);font-size:12px;margin:0;padding-left:16px}
-.ctl{display:flex;gap:6px;flex-wrap:wrap}
-.ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--fg);cursor:pointer}
-button:focus-visible,input:focus-visible{outline:2px solid var(--oes);outline-offset:1px}
-.attr{font-size:11px;color:var(--muted)}
-#tip{position:absolute;z-index:3;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font-size:12px;max-width:260px;display:none}
-#tip b{display:block}
-#err{color:#b3261e;font-size:12px}
-</style>
+<meta name="description" content="Compare legacy ICAO Annex 14 obstacle limitation surfaces with the Amendment 18 obstacle free and obstacle evaluation surfaces at a real airport.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+<link rel="stylesheet" href="app/style.css">
+<link rel="icon" href="data:,">
 </head><body>
-<div id="map"></div>
+<div id="map" aria-label="3D map"></div>
 <div id="tip" role="status"></div>
-<div id="panel">
-  <div>
-    <h1 id="title">Loading…</h1>
-    <div class="sub" id="cfg"></div>
-  </div>
-  <div>
-    <h2>Surfaces</h2>
-    <div id="sets"></div>
-    <div class="sub" style="margin-top:6px">Dashed amber: legacy OLS. Red: OFS, objects prohibited. Blue: OES, penetration triggers an aeronautical study. Hover a surface for its height.</div>
-  </div>
-  <details>
-    <summary>Runway inputs and sources</summary>
-    <table id="inputs"></table>
-    <ul class="warn" id="warns"></ul>
-  </details>
-  <div class="ctl"><button id="b-ter" type="button">Terrain: on</button><button id="b-bld" type="button">Buildings: on</button><button id="b-top" type="button">Top view</button></div>
-  <div id="err"></div>
-  <div class="attr">Stage 3 build check. Educational tool, not for aerodrome safeguarding decisions. Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runway: OurAirports.</div>
+
+<div id="views" class="ctl float">
+  <button id="b-top" type="button">Top view</button>
+  <button id="b-ter" type="button" aria-pressed="true">Terrain</button>
+  <button id="b-bld" type="button" aria-pressed="true">Buildings</button>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+<aside id="panel" aria-label="Controls">
+  <button id="grip" type="button" aria-expanded="true" aria-label="Show or hide panel"><span></span></button>
+  <header>
+    <h1 id="title">Loading…</h1>
+    <div class="sub" id="cfg"></div>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="setup" aria-selected="true">Setup</button>
+    <button role="tab" data-tab="surfaces" aria-selected="false">Surfaces</button>
+    <button role="tab" data-tab="details" aria-selected="false">Details</button>
+  </nav>
+
+  <section id="tab-setup" class="tab" role="tabpanel">
+    <div class="field">
+      <label for="q">Airport</label>
+      <div class="combo">
+        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="ICAO code or name" aria-controls="q-list" aria-autocomplete="list">
+        <ul id="q-list" role="listbox" hidden></ul>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">Runway</span>
+      <div id="rwys" class="chips"></div>
+    </div>
+
+    <fieldset>
+      <legend>Critical aeroplane</legend>
+      <div class="field">
+        <label for="preset">Preset</label>
+        <select id="preset"></select>
+        <div class="note" id="preset-note"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label for="arfl">ARFL <span class="u">m</span></label><input id="arfl" type="number" inputmode="decimal" min="0" step="1"></div>
+        <div class="field"><label for="span">Wingspan <span class="u">m</span></label><input id="span" type="number" inputmode="decimal" min="0" step="0.01"></div>
+        <div class="field"><label for="vat">Vat <span class="u">kt</span></label><input id="vat" type="number" inputmode="decimal" min="0" step="1"></div>
+      </div>
+      <details class="mini">
+        <summary>Work out Vat from stall speeds</summary>
+        <div class="grid3">
+          <div class="field"><label for="vso">Vso <span class="u">kt</span></label><input id="vso" type="number" inputmode="decimal" min="0"></div>
+          <div class="field"><label for="vs1g">Vs1g <span class="u">kt</span></label><input id="vs1g" type="number" inputmode="decimal" min="0"></div>
+          <div class="field"><span class="lbl">&nbsp;</span><button id="b-vat" type="button">Use</button></div>
+        </div>
+        <div class="note">Vat is the greater of 1.3 Vso and 1.23 Vs1g at maximum certificated landing mass (1.8.2 Note).</div>
+      </details>
+      <div id="derived" class="derived" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Runway use</legend>
+      <div class="grid2">
+        <div class="field"><label for="approach">Approach type</label><select id="approach"></select></div>
+        <div class="field"><label for="width">Runway width <span class="u">m</span></label><input id="width" type="number" inputmode="decimal" min="0"><div class="note" id="width-src"></div></div>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="f-circ"> Circling or visual circuits <span class="note">(horizontal OES, 4.5.2.1 a)</span></label>
+        <label><input type="checkbox" id="f-idep"> Instrument departures <span class="note">(4.5.2.1 d)</span></label>
+        <label><input type="checkbox" id="f-heavy"> MTOM over 5 700 kg <span class="note">(Table 4-15 v 4-14)</span></label>
+        <label><input type="checkbox" id="f-turn"> Departure turn over 15° in IMC or at night <span class="note">(legacy T4-2 c)</span></label>
+        <label><input type="checkbox" id="f-dga"> Digital go-around steering fitted <span class="note">(code F only)</span></label>
+      </div>
+      <div class="note">v1: one approach type for both runway ends.</div>
+    </fieldset>
+
+    <details>
+      <summary>Runway values and sources</summary>
+      <div class="note">Defaults come from OurAirports, which gives runway ends rather than surveyed thresholds. Enter values from the AIP (AD 2.12) to override.</div>
+      <div id="rvals"></div>
+      <button id="b-reset" type="button" class="link">Reset to defaults</button>
+    </details>
+    <ul class="warn" id="warns"></ul>
+    <div id="err" role="alert"></div>
+  </section>
+
+  <section id="tab-surfaces" class="tab" role="tabpanel" hidden>
+    <div class="seg" id="modes" role="radiogroup" aria-label="Comparison mode"></div>
+    <div class="sub" id="mode-blurb"></div>
+    <div id="sets"></div>
+    <div id="diff" hidden>
+      <div class="field">
+        <span class="lbl">Compare legacy with</span>
+        <div class="seg small" id="diff-set">
+          <button type="button" data-v="all" aria-pressed="true">All new surfaces</button>
+          <button type="button" data-v="ofs" aria-pressed="false">OFS only</button>
+        </div>
+      </div>
+      <ul id="diff-legend" class="legend"></ul>
+      <div class="sub">Each cell compares the lowest legacy surface with the lowest new surface at that point. Hover or tap for heights. Purple means the new rules are more restrictive there.</div>
+      <div class="sub" id="diff-status"></div>
+    </div>
+  </section>
+
+  <section id="tab-details" class="tab" role="tabpanel" hidden>
+    <div id="detail"><p class="sub">Click or tap a surface on the map, or a name in the Surfaces list, to see its dimensions, clause and obstacle rule.</p></div>
+  </section>
+
+  <footer class="attr">Educational tool, not for aerodrome safeguarding decisions. Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runways: OurAirports.</footer>
+</aside>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
-<script type="module">
-import { deriveConfig } from './engine/derive.js';
-import { buildGeometry, heightAt } from './engine/geometry.js';
-import { findRunway, runwayInputs } from './engine/georef.js';
-
-// ---- hard-coded case for Stage 3 (Sample A aeroplane on YBBN 01R/19L)
-const CASE = {
-  icao: 'YBBN', runway: '01R',
-  aircraft: { arfl: 2800, wingspan: 60, vat: 145, approach: 'PA I' },
-  overrides: {},
-};
-
-const SETS = {
-  OLS: { label: 'Legacy OLS', rgb: [224, 161, 0], dash: true },
-  OFS: { label: 'New OFS', rgb: [214, 57, 57] },
-  OES: { label: 'New OES', rgb: [46, 125, 230] },
-};
-const NAMES = {
-  legacy_conical: 'Conical', legacy_inner_horizontal: 'Inner horizontal', legacy_approach: 'Approach',
-  legacy_inner_approach: 'Inner approach', legacy_transitional: 'Transitional', legacy_inner_transitional: 'Inner transitional',
-  legacy_balked_landing: 'Balked landing', legacy_take_off_climb: 'Take-off climb',
-  ofs_approach: 'Approach', ofs_transitional: 'Transitional', ofs_inner_approach: 'Inner approach',
-  ofs_inner_transitional: 'Inner transitional', ofs_balked_landing: 'Balked landing',
-  oes_horizontal: 'Horizontal', oes_straight_in: 'Straight-in instrument approach', oes_precision: 'Precision approach',
-  oes_departure: 'Instrument departure', oes_take_off_climb: 'Take-off climb',
-};
-const DEFAULT_ON = new Set(['legacy_approach', 'legacy_transitional', 'ofs_approach', 'ofs_transitional', 'ofs_inner_approach', 'ofs_inner_transitional']);
-
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const m1 = v => (Math.round(v * 10) / 10).toFixed(1);
-
-try {
-  const [std, data] = await Promise.all(['./data/ols_standards.json', './data/runways_paved.json'].map(u => fetch(u).then(r => r.json())));
-  const row = findRunway(data, CASE.icao, CASE.runway);
-  if (!row) throw new Error(`${CASE.icao} ${CASE.runway} not found`);
-  const I = runwayInputs(row, CASE.overrides);
-  const cfg = deriveConfig({ ...CASE.aircraft, runwayWidth: Math.round(I.widthM) }, std);
-  if (cfg.errors?.length) throw new Error(cfg.errors.join('; '));
-  const G = buildGeometry(std, cfg, I.rw);
-  const P = I.placed;
-  const surfaces = [...G.legacy, ...G.new];
-  const on = new Set(surfaces.filter(s => DEFAULT_ON.has(s.id)).map(s => s.id));
-
-  // ---- panel
-  $('title').textContent = `${row.icao} RWY ${I.idents.join('/')} · ${row.airport?.name ?? ''}`;
-  $('cfg').textContent = `Code ${cfg.codeNumber}${cfg.codeLetter}, ADG ${cfg.adg}, ${cfg.approach}. Legacy column ${cfg.legacyColumn}. Runway ${Math.round(P.length)} m × ${Math.round(I.widthM)} m, bearing ${P.bearing.toFixed(1)}° T.`;
-  $('sets').innerHTML = Object.entries(SETS).map(([set, S]) => {
-    const list = surfaces.filter(s => s.set === set);
-    if (!list.length) return '';
-    return `<div class="set"><label class="head"><input type="checkbox" data-set="${set}"><span class="sw ${set.toLowerCase()}"></span>${S.label}</label>
-      ${list.map(s => `<label class="indent"><input type="checkbox" data-id="${s.id}" ${on.has(s.id) ? 'checked' : ''}>${esc(NAMES[s.id] || s.title)} <span class="src">${esc(s.clause)}</span></label>`).join('')}</div>`;
-  }).join('');
-  const syncHeads = () => document.querySelectorAll('[data-set]').forEach(h => {
-    const ids = surfaces.filter(s => s.set === h.dataset.set).map(s => s.id);
-    const n = ids.filter(i => on.has(i)).length;
-    h.checked = n === ids.length; h.indeterminate = n > 0 && n < ids.length;
-  });
-  $('sets').addEventListener('change', e => {
-    const t = e.target;
-    if (t.dataset.id) t.checked ? on.add(t.dataset.id) : on.delete(t.dataset.id);
-    if (t.dataset.set) {
-      surfaces.filter(s => s.set === t.dataset.set).forEach(s => t.checked ? on.add(s.id) : on.delete(s.id));
-      document.querySelectorAll(`[data-id]`).forEach(c => { c.checked = on.has(c.dataset.id); });
-    }
-    syncHeads(); render();
-  });
-  syncHeads();
-
-  const vrow = (label, x, fmt) => x ? `<tr><th>${label}</th><td class="n">${fmt(x.value)}</td><td><span class="src ${x.source === 'Fallback' ? 'fb' : ''}">${esc(x.source)}</span></td></tr>` : '';
-  const deg = v => v.toFixed(6), m = v => `${m1(v)} m`;
-  $('inputs').innerHTML = I.values.ends.map((e, i) => `<tr><th colspan="3">${esc(I.idents[i])} end</th></tr>
-    ${vrow('Lat', e.lat, deg)}${vrow('Lon', e.lon, deg)}${vrow('THR elev', e.elevation, m)}${vrow('Displaced', e.displaced, m)}
-    ${vrow('Clearway', e.clearway, m)}${vrow('Strip beyond end', e.stripExtension, m)}`).join('')
-    + vrow('AD elev', I.values.aerodromeElevation, m) + vrow('Length', I.values.length, m)
-    + (I.values.lengthListed ? `<tr><th>Listed length</th><td class="n">${m1(I.values.lengthListed)} m</td><td><span class="src">OurAirports</span></td></tr>` : '');
-  $('warns').innerHTML = [...I.warnings, ...(cfg.warnings || []), 'OurAirports positions are runway ends, not surveyed thresholds; check against the imagery.']
-    .map(w => `<li>${esc(w)}</li>`).join('');
-
-  // ---- deck data (runway frame -> WGS84 once)
-  const W = p => P.toWGS(p);
-  const polys = [], rings = [];
-  // Outlines: only edges that are not shared by two facets of the same surface
-  // instance, so seams inside a surface (conical sectors, transitional pieces) are not drawn.
-  const key = p => p.map(c => Math.round(c * 100)).join(',');
-  for (const s of surfaces) {
-    const S = SETS[s.set];
-    for (const ins of s.instances) {
-      const edges = new Map();
-      for (const f of ins.facets) {
-        polys.push({ s, ins, set: s.set, poly: [f.v.map(W), ...(f.holes || []).map(h => h.map(W))], rgb: S.rgb });
-        for (const r of [f.v, ...(f.holes || [])]) r.forEach((a, i) => {
-          const b = r[(i + 1) % r.length], k = [key(a), key(b)].sort().join('|');
-          const e = edges.get(k); e ? e.n++ : edges.set(k, { a, b, n: 1 });
-        });
-      }
-      for (const { a, b, n } of edges.values()) if (n === 1) rings.push({ s, set: s.set, path: [W(a), W(b)], rgb: S.rgb });
-    }
-  }
-  const hw = I.widthM / 2, [d1] = I.geo.displaced, Lend = P.length - d1;
-  const zr = x => G.runway.profile(x);
-  const pave = [[-d1, -hw], [-d1, hw], [Lend, hw], [Lend, -hw]].map(([x, y]) => W([x, y, zr(x) + 0.3]));
-  const thr = G.runway.thresholdX.map(x => [W([x, -hw, zr(x) + 0.4]), W([x, hw, zr(x) + 0.4])]);
-
-  // Runway markings always draw over the DEM (Terrarium is noisy by a few metres at
-  // low coastal sites); surfaces keep depth testing so real terrain can hide them.
-  const ON_TOP = { depthCompare: 'always', depthWriteEnabled: false };
-  const ext = new deck.PathStyleExtension({ dash: true });
-  const layers = () => [
-    new deck.PolygonLayer({ id: 'rwy', data: [{ p: pave }], getPolygon: d => d.p, getFillColor: [245, 245, 245, 150], stroked: false, _full3d: true, parameters: ON_TOP }),
-    new deck.PathLayer({ id: 'thr', data: thr, getPath: d => d, getColor: [20, 200, 120, 255], widthUnits: 'pixels', getWidth: 3, parameters: ON_TOP }),
-    new deck.SolidPolygonLayer({
-      id: 'surf', data: polys.filter(d => on.has(d.s.id)), getPolygon: d => d.poly, _full3d: true,
-      getFillColor: d => [...d.rgb, d.set === 'OLS' ? 55 : 70], pickable: true, autoHighlight: true, highlightColor: [255, 255, 255, 60],
-      updateTriggers: { getFillColor: [] },
-    }),
-    new deck.PathLayer({
-      id: 'edge-new', data: rings.filter(d => on.has(d.s.id) && d.set !== 'OLS'), getPath: d => d.path,
-      getColor: d => [...d.rgb, 230], widthUnits: 'pixels', getWidth: 1.5,
-    }),
-    new deck.PathLayer({
-      id: 'edge-ols', data: rings.filter(d => on.has(d.s.id) && d.set === 'OLS'), getPath: d => d.path,
-      getColor: d => [...d.rgb, 240], widthUnits: 'pixels', getWidth: 2, getDashArray: [6, 4], dashJustified: true, extensions: [ext],
-    }),
-  ];
-
-  // ---- hover: height of the hovered surface at the cursor
-  const tip = $('tip');
-  const onHover = info => {
-    if (!info.object || !info.coordinate) { tip.style.display = 'none'; return; }
-    const { s } = info.object;
-    const [x, y] = P.fromWGS(info.coordinate);
-    let z = null;
-    for (const ins of s.instances) { const h = heightAt(ins.facets, x, y); if (h !== null && (z === null || h < z)) z = h; }
-    const S = SETS[s.set];
-    tip.innerHTML = `<b>${S.label}: ${esc(NAMES[s.id] || s.title)}</b>${esc(s.clause)} · ${esc(s.obligation || '')}`
-      + (z !== null ? `<br>${m1(z)} m AMSL · ${m1(z - G.runway.highestThreshold)} m above highest THR` : '');
-    tip.style.display = 'block';
-    tip.style.left = Math.min(info.x + 14, innerWidth - 270) + 'px'; tip.style.top = (info.y + 14) + 'px';
-  };
-
-  // ---- map
-  const t1 = W([0, 0, 0]);
-  const map = window.map = new maplibregl.Map({
-    container: 'map', attributionControl: false, maxPitch: 80,
-    center: W([-1500, 0, 0]).slice(0, 2), zoom: 13.1, pitch: 60, bearing: P.bearing,
-    style: { version: 8, sources: {
-      img: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19 },
-      omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' },
-      dem: { type: 'raster-dem', encoding: 'terrarium', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 14 },
-    }, layers: [
-      { id: 'bg', type: 'background', paint: { 'background-color': '#3a4148' } },
-      { id: 'img', type: 'raster', source: 'img' },
-      { id: 'bld', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 13, paint: {
-        'fill-extrusion-color': '#d9dde2', 'fill-extrusion-opacity': 0.85,
-        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0] } },
-    ], terrain: { source: 'dem', exaggeration: 1 } },
-  });
-  const overlay = new deck.MapboxOverlay({ interleaved: true, layers: layers(), onHover });
-  function render() { overlay.setProps({ layers: layers() }); }
-  map.on('load', () => {
-    map.addSource('cl', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [[row.le_lon, row.le_lat], [row.he_lon, row.he_lat]] } } });
-    map.addLayer({ id: 'cl', type: 'line', source: 'cl', paint: { 'line-color': '#ffd400', 'line-width': 1.5 } });
-    map.addControl(overlay);
-    window.__ready = true;
-  });
-  let ter = true; $('b-ter').onclick = e => { ter = !ter; map.setTerrain(ter ? { source: 'dem', exaggeration: 1 } : null); e.target.textContent = 'Terrain: ' + (ter ? 'on' : 'off'); };
-  let bld = true; $('b-bld').onclick = e => { bld = !bld; map.setLayoutProperty('bld', 'visibility', bld ? 'visible' : 'none'); e.target.textContent = 'Buildings: ' + (bld ? 'on' : 'off'); };
-  let top = false; $('b-top').onclick = e => {
-    top = !top; e.target.textContent = top ? '3D view' : 'Top view';
-    map.easeTo(top ? { center: W([P.Lt / 2, 0, 0]).slice(0, 2), zoom: 13.6, pitch: 0, bearing: 0 } : { center: W([-1500, 0, 0]).slice(0, 2), zoom: 13.1, pitch: 60, bearing: P.bearing });
-  };
-  window.__geo = { P, G, I, t1 };
-} catch (e) {
-  $('err').textContent = 'Error: ' + e.message; console.error(e);
-}
-</script>
+<script type="module" src="app/main.js"></script>
 </body></html>
