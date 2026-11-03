@@ -1,0 +1,109 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OLS Spike YBBN</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: full-bleed map, one status card floating top-left */
+:root{
+  --bg:#e9ecef; --panel:#ffffffee; --fg:#17202a; --muted:#5b6672; --ok:#1d7a46; --bad:#b3261e; --line:#c9d0d6;
+  --f-ui: "IBM Plex Sans", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#11161b;--panel:#1a2128ee;--fg:#e6ebef;--muted:#9aa6b1;--ok:#5fd394;--bad:#ff8a80;--line:#2c3640;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161b;--panel:#1a2128ee;--fg:#e6ebef;--muted:#9aa6b1;--ok:#5fd394;--bad:#ff8a80;--line:#2c3640;color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui)}
+#map{position:absolute;inset:0}
+.maplibregl-map{position:relative;overflow:hidden}
+.maplibregl-canvas{position:absolute;left:0;top:0}
+.maplibregl-canvas-container.maplibregl-interactive{cursor:grab}
+#panel{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px, env(safe-area-inset-left,0px));
+  width:min(320px, calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;
+  font-size:13px;line-height:1.45;display:grid;gap:8px;z-index:2}
+#panel h1{font-size:14px;margin:0;text-wrap:balance}
+#panel .sub{color:var(--muted);font-size:12px}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-family:var(--f-mono);font-size:12px}
+li span{display:inline-block;width:3.2em}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:var(--muted)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap}
+.ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--fg);cursor:pointer}
+.ctl button:focus-visible{outline:2px solid var(--ok)}
+.attr{font-size:11px;color:var(--muted)}
+</style>
+
+</head><body>
+<div id="map"></div>
+<div id="panel">
+  <div>
+    <h1>Stage 1 spike: YBBN RWY 01R</h1>
+    <div class="sub">Legacy PA approach, first section (280 m inner edge, 60 m before THR, 15% divergence, 2% to 3 000 m). Drag to pan, right drag to tilt.</div>
+  </div>
+  <ul id="status">
+    <li id="s-lib"><span class="wait">…</span>MapLibre + deck.gl scripts</li>
+    <li id="s-img"><span class="wait">…</span>Imagery tiles (Esri)</li>
+    <li id="s-dem"><span class="wait">…</span>Terrain tiles (AWS Terrarium)</li>
+    <li id="s-bld"><span class="wait">…</span>Buildings (OpenFreeMap)</li>
+    <li id="s-3d"><span class="wait">…</span>3D surface drawn</li>
+  </ul>
+  <div class="ctl"><button id="b-ter" type="button">Terrain: on</button><button id="b-mode" type="button">Overlay: interleaved</button><button id="b-bld" type="button">Buildings: on</button></div>
+  <div class="sub">Yellow line: OurAirports centre line drawn by MapLibre (data check). White and orange: deck.gl (renderer check). They should coincide.</div>
+  <ul hidden>
+  </ul>
+  <div class="attr">Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runway: OurAirports.</div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+<script>
+const set=(id,ok,txt)=>{const s=document.querySelector('#'+id+' span');s.className=ok?'ok':'bad';s.textContent=txt||(ok?'OK':'FAIL');};
+const okLib = typeof maplibregl!=='undefined' && typeof deck!=='undefined' && deck.MapboxOverlay;
+set('s-lib', !!okLib);
+
+// Hard-coded runway (OurAirports YBBN 01R/19L, runway ends; elevations ft)
+const LE={lat:-27.4039,lon:153.117996,elev:12*0.3048}, HE={lat:-27.375299,lon:153.134003,elev:11*0.3048};
+const R=6371008.8, rad=Math.PI/180;
+const mPerLat=R*rad, mPerLon=R*rad*Math.cos(LE.lat*rad);
+const dx=(HE.lon-LE.lon)*mPerLon, dy=(HE.lat-LE.lat)*mPerLat, L=Math.hypot(dx,dy);
+const ux=dx/L, uy=dy/L;               // along centre line, toward 19L end
+const vx=-uy, vy=ux;                   // lateral (left of 01R)
+// Local runway frame (x along CL from threshold, y lateral, z height) to [lon,lat,alt]
+const toWGS=(x,y,z)=>[LE.lon+(x*ux+y*vx)/mPerLon, LE.lat+(x*uy+y*vy)/mPerLat, LE.elev+z];
+
+// Legacy PA I-3/4 approach first section (values from ols_standards.json)
+const d0=60, half=140, div=0.15, len=3000, slope=0.02;
+const appr=[toWGS(-d0,-half,0),toWGS(-d0,half,0),toWGS(-d0-len,half+div*len,slope*len),toWGS(-d0-len,-half-div*len,slope*len)];
+const rwyHalf=22.5;
+const rwy=[toWGS(0,-rwyHalf,0),toWGS(0,rwyHalf,0),toWGS(L,rwyHalf,0),toWGS(L,-rwyHalf,0)];
+
+if(okLib){
+  const map=window.map=new maplibregl.Map({
+    container:'map', attributionControl:false, center:toWGS(-1200,0,0).slice(0,2), zoom:13.2, pitch:62, bearing:Math.atan2(dx,dy)/rad+180, maxPitch:80,
+    style:{version:8,sources:{
+      img:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19},
+      omt:{type:'vector',url:'https://tiles.openfreemap.org/planet'},
+      dem:{type:'raster-dem',encoding:'terrarium',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:14}
+    },layers:[{id:'bg',type:'background',paint:{'background-color':'#3a4148'}},{id:'img',type:'raster',source:'img'},
+      {id:'bld',type:'fill-extrusion',source:'omt','source-layer':'building',minzoom:13,paint:{'fill-extrusion-color':'#d9dde2','fill-extrusion-opacity':0.85,'fill-extrusion-height':['coalesce',['get','render_height'],6],'fill-extrusion-base':['coalesce',['get','render_min_height'],0]}}],
+    terrain:{source:'dem',exaggeration:1}}
+  });
+  const seen={img:null,dem:null,omt:null}; const sid={img:'s-img',dem:'s-dem',omt:'s-bld'};
+  map.on('sourcedata',e=>{if(e.tile&&e.sourceId in seen&&seen[e.sourceId]===null){seen[e.sourceId]=true;set(sid[e.sourceId],true);}});
+  map.on('error',e=>{const id=e.sourceId||(e.source&&e.source.id);if(id in seen&&!seen[id]){seen[id]=false;set(sid[id],false,'BLKD');}});
+  setTimeout(()=>{for(const k in seen) if(seen[k]===null) set(sid[k],false,'NONE');},12000);
+  const layers=()=>[
+    new deck.PolygonLayer({id:'rwy',data:[{p:rwy}],getPolygon:d=>d.p,getFillColor:[245,245,245,200],stroked:false}),
+    new deck.PolygonLayer({id:'appr',data:[{p:appr}],getPolygon:d=>d.p,getFillColor:[255,150,40,90],getLineColor:[255,150,40,255],lineWidthMinPixels:2,stroked:true,extruded:false})];
+  let interleaved=true, overlay=null;
+  const mount=()=>{ if(overlay) map.removeControl(overlay);
+    overlay=new deck.MapboxOverlay({interleaved,layers:layers(),onAfterRender:()=>set('s-3d',true)}); map.addControl(overlay);
+    document.getElementById('b-mode').textContent='Overlay: '+(interleaved?'interleaved':'separate'); };
+  map.on('load',()=>{
+    map.addSource('cl',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[[LE.lon,LE.lat],[HE.lon,HE.lat]]}}});
+    map.addLayer({id:'cl',type:'line',source:'cl',paint:{'line-color':'#ffd400','line-width':2}});
+    mount();
+  });
+  document.getElementById('b-mode').onclick=()=>{interleaved=!interleaved;mount();};
+  let bld=true; document.getElementById('b-bld').onclick=(e)=>{bld=!bld;map.setLayoutProperty('bld','visibility',bld?'visible':'none');e.target.textContent='Buildings: '+(bld?'on':'off');};
+  let ter=true; document.getElementById('b-ter').onclick=(e)=>{ter=!ter;map.setTerrain(ter?{source:'dem',exaggeration:1}:null);e.target.textContent='Terrain: '+(ter?'on':'off');};
+} else { ['s-img','s-dem','s-3d'].forEach(i=>set(i,false,'n/a')); }
+</script>
+</body></html>
