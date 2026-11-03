@@ -246,3 +246,18 @@ test('precision approach OES transitional runs along both approach and both miss
   // Missed approach 2nd section, 1 000 m into it: edge 714.64 m out at 80 m.
   near(zAt(A, 'oes_precision', 3700, 714.64 + 100), 80 + 14.3, 1e-9);
 });
+
+test('transitional lower edge runs along the strip to the strip end beyond a displaced threshold', () => {
+  // THR 1 displaced 300 m: strip end 360 m before THR 1, approach inner edge 60 m before it.
+  const rw = { length: 3000, ends: [{ elevation: 10, displaced: 300 }, { elevation: 10 }] };
+  const g = geo(A_IN, rw);
+  // OFS: 200 m before THR 1, 50 m outside the strip edge line (92.5 m): 20% gives 10 m.
+  near(zAt(g, 'ofs_transitional', -200, 142.5), 20, 1e-9, 'OFS strip edge governs');
+  // Without a displaced threshold the same point sits under the approach side transitional only.
+  assert.ok(zAt(A, 'ofs_transitional', -200, 142.5) > 20 + 1);
+  // Legacy PA: the approach side transitional is already lower there, so it still governs.
+  near(lowestAt(g.legacy, -200, 240).z, 10 + 0.02 * 140 + 0.143 * (240 - 140 - 0.15 * 140), 1e-9);
+  // Only the displaced end gains a strip piece (one facet each side); a standard runway gains none.
+  assert.equal(surf(g, 'ofs_transitional').instances[0].facets.length,
+    surf(A, 'ofs_transitional').instances[0].facets.length + 2);
+});

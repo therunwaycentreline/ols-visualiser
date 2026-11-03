@@ -320,21 +320,21 @@ dd{margin:0;font:500 .95rem var(--mono)}
 
   <div class="status">
     <div><span class="eyebrow">Stages</span><ol class="stages">
-      <li class="done">1 Platform</li><li class="now">2 Engine (review)</li><li>3 Rendering</li><li>4 Interface</li><li>5 Verification</li></ol></div>
+      <li class="done">1 Platform</li><li class="done">2 Engine</li><li class="now">3 Rendering</li><li>4 Interface</li><li>5 Verification</li></ol></div>
     <div><span class="eyebrow">Tests</span><b style="color:var(${passed === tests.length ? '--ok' : '--warn'})">${passed} of ${tests.length} passing</b></div>
     <div><span class="eyebrow">Footnote rules</span><b>${counts.implemented || 0} done · ${counts.noted || 0} noted · ${counts.deferred || 0} deferred</b></div>
   </div>
 
   <section style="display:grid;gap:8px">
-    <h2>Geometry assumptions for review</h2>
+    <h2>Geometry assumptions</h2>
     <ul class="decisions">
-      <li>Runway profile is straight between thresholds and held level beyond them, so approach inner edges (at threshold elevation) meet the strip edge without a step.</li>
-      <li>Transitional lower edges run along the strip between the two approach inner edges. With no displaced threshold and a 60 m strip, that is the strip end.</li>
-      <li>Take-off climb and departure inner edges take the runway end elevation. The "highest point between runway end and inner edge" needs clearway ground data.</li>
-      <li>Strip beyond each runway end defaults to 60 m and aerodrome elevation to the highest threshold. Both are inputs.</li>
-      <li>OFS inner approach starts at the OFS approach inner edge distance (60 m, or 30 m for NI ADG I), as a rectangle in the approach plane.</li>
+      <li><b>Confirmed:</b> runway profile is straight between thresholds and held level beyond them, so approach inner edges (at threshold elevation) meet the strip edge without a step.</li>
+      <li><b>Confirmed:</b> transitional lower edges run along the strip edge to each strip end, using the displaced threshold and strip extension inputs. Where the strip runs beyond the approach inner edge, the lower of the strip and approach side transitionals governs.</li>
+      <li><b>Confirmed:</b> take-off climb and departure inner edges take the runway end elevation. The "highest point between runway end and inner edge" needs clearway ground data.</li>
+      <li><b>Confirmed:</b> strip beyond each runway end defaults to 60 m and aerodrome elevation to the highest threshold. Both are inputs.</li>
+      <li><b>Confirmed:</b> OFS inner approach starts at the OFS approach inner edge distance (60 m, or 30 m for NI ADG I), as a rectangle in the approach plane.</li>
       <li><b>Confirmed:</b> precision approach OES transitional rises from both approach sections, the lower component and both missed approach sections until it reaches 300 m above threshold (Figure 4-6).</li>
-      <li>Both runway directions use the same approach type in v1.</li>
+      <li><b>v1 limit:</b> each runway is set up on its own (code, ADG, approach type), and both ends of a runway share one approach type. Different types at each end and several runways shown together are in the parking lot.</li>
     </ul>
   </section>
 

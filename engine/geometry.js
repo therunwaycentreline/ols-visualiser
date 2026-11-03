@@ -356,7 +356,8 @@ const LEGACY = {
     const dims = legacyApproachDims(a);
     const top = ihsTop(ctx);
     const edge = runwayTransitionalEdge(ctx.m, dims.D, dims.W / 2, dims.sections);
-    const facets = transitional(edge, val(s, 'Slope'), top);
+    const facets = [edge, ...stripBeyondApproach(ctx.m, dims.D, dims.W / 2)]
+      .flatMap(e => transitional(e, val(s, 'Slope'), top));
     return [instance(null, facets, transitionalPoints(ctx.m, dims.W / 2, val(s, 'Slope'), top))];
   },
 
@@ -430,6 +431,21 @@ function runwayTransitionalEdge(m, D, hw, sections) {
   return [...side1, ...strip.slice(1, -1), ...side2];
 }
 
+/**
+ * Strip edge between an approach inner edge and the strip end, where the strip
+ * runs further out than the approach inner edge (displaced threshold, or strip
+ * extension beyond the approach inner edge distance). The transitional lower
+ * edge runs along the strip to its end; where the approach side transitional is
+ * lower, lowestAt picks it. Returns zero, one or two edges (+y side).
+ */
+function stripBeyondApproach(m, D, hw) {
+  const out = [];
+  const [s1, s2] = m.stripEndX;
+  if (s1 < -D - EPS) out.push([s1, -D].map(x => [x, hw, m.profile(x)]));
+  if (s2 > m.Lt + D + EPS) out.push([m.Lt + D, s2].map(x => [x, hw, m.profile(x)]));
+  return out;
+}
+
 function transitionalPoints(m, hw, slope, top) {
   return [
     ['Lower edge abeam threshold 1', [0, hw, m.zt[0]]],
@@ -467,7 +483,8 @@ const NEW = {
     const a = ofsApproachDims(ctx.byId.ofs_approach);
     const top = ofsTop(ctx), sl = val(s, 'Slope (maximum)');
     const edge = runwayTransitionalEdge(ctx.m, a.D, a.W / 2, [{ length: a.L, slope: a.slope, div: a.div }]);
-    return [instance(null, transitional(edge, sl, top), transitionalPoints(ctx.m, a.W / 2, sl, top))];
+    const facets = [edge, ...stripBeyondApproach(ctx.m, a.D, a.W / 2)].flatMap(e => transitional(e, sl, top));
+    return [instance(null, facets, transitionalPoints(ctx.m, a.W / 2, sl, top))];
   },
 
   ofs_inner_approach(s, ctx) {
