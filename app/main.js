@@ -309,8 +309,8 @@ function renderDerived(m) {
   const row = (k, v, why) => `<dt>${k}</dt><dd><b>${esc(v ?? 'n/a')}</b>${why ? ' · ' + esc(why) : ''}</dd>`;
   const band = (x, bands, key) => { const b = bands.find(b => (b.gte === undefined || x >= b.gte) && (b.lt === undefined || x < b.lt)); return !b ? '' : b.lt === undefined ? `${b.gte} m or more` : b.gte === undefined ? `under ${b.lt} m` : `${b.gte} to under ${b.lt} m`; };
   $('derived').innerHTML = `<dl class="kv" style="grid-column:1/-1">`
-    + row('Code number', c.codeNumber, S.arfl ? `ARFL ${S.arfl} m (${band(S.arfl, STD.derivation.code_number.bands)})` : '')
-    + row('Code letter', c.codeLetter, S.wingspan ? `span ${S.wingspan} m (${band(S.wingspan, STD.derivation.code_letter.bands)})` : '')
+    + row('Code number', c.codeNumber, S.arfl ? `ARFL ${band(S.arfl, STD.derivation.code_number.bands)}` : '')
+    + row('Code letter', c.codeLetter, S.wingspan ? `wingspan ${band(S.wingspan, STD.derivation.code_letter.bands)}` : '')
     + row('ADG', c.adg, c.vat ? `Vat ${Math.round(c.vat)} kt, span ${S.wingspan} m` : '')
     + row('Legacy column', c.legacyColumn, `take-off ${c.takeoffColumn ?? 'n/a'}`)
     + row('New runway type', { NI: 'Non-instrument', NPA: 'Non-precision', PA: 'Precision' }[c.runwayType] ?? null)
@@ -334,7 +334,7 @@ function renderRunwayValues(m) {
   $('rvals').innerHTML = `<table class="rv"><tr><th></th><th>${esc(I.idents[0])}</th><th>${esc(I.idents[1])}</th></tr>`
     + RV_FIELDS.map(([f, label, d]) => `<tr><th>${label}</th>${cell(0, f, d)}${cell(1, f, d)}</tr>`).join('')
     + `<tr><th>AD elev (m)</th><td colspan="2"><input type="number" step="any" data-f="aerodromeElevation" value="${ad?.value != null ? (+ad.value).toFixed(1) : ''}"><div class="src ${srcCls(ad?.source)}">${esc(ad?.source ?? 'n/a')}</div></td></tr>`
-    + `<tr><th>Length</th><td colspan="2" class="n" style="text-align:left">${m1(I.values.length.value)} m <span class="src">from end coordinates${I.values.lengthListed ? `; listed ${m1(I.values.lengthListed)} m` : ''}</span></td></tr></table>`;
+    + `<tr><th>Length</th><td colspan="2"><span style="font-family:var(--f-mono)">${m1(I.values.length.value)} m</span><div class="src">from end coordinates${I.values.lengthListed ? `; listed ${m1(I.values.lengthListed)} m` : ''}</div></td></tr></table>`;
 }
 
 // ---------------------------------------------------------------- panel: surfaces
@@ -413,7 +413,7 @@ function tab(name) {
 }
 document.querySelector('.tabs').addEventListener('click', e => { if (e.target.dataset.tab) tab(e.target.dataset.tab); });
 $('grip').onclick = () => {
-  const c = $('panel').classList.toggle('collapsed');
+  const c = $('panel').classList.toggle('collapsed'); if (c) $('panel').scrollTop = 0;
   $('grip').setAttribute('aria-expanded', !c);
 };
 
@@ -509,12 +509,6 @@ $('preset').addEventListener('change', e => {
 for (const [id, key] of [['arfl', 'arfl'], ['span', 'wingspan'], ['vat', 'vat']]) {
   $(id).addEventListener('input', e => { S[key] = num(e.target.value); S.preset = ''; $('preset').value = ''; later(); });
 }
-$('b-vat').onclick = () => {
-  const vso = num($('vso').value), vs1g = num($('vs1g').value);
-  const c = [vso && 1.3 * vso, vs1g && 1.23 * vs1g].filter(Boolean);
-  if (!c.length) return;
-  S.vat = Math.round(Math.max(...c) * 10) / 10; $('vat').value = S.vat; S.preset = ''; $('preset').value = ''; update();
-};
 
 // Runway use
 $('approach').addEventListener('change', e => { S.approach = e.target.value; S.idep = null; update(); });

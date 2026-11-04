@@ -15,8 +15,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);overflow:hidde
 .maplibregl-canvas-container.maplibregl-interactive{cursor:grab}
 
 /* Panel: left column on wide screens, bottom sheet on phones */
-#panel{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));
-  width:min(360px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);
+#panel{overflow-x:hidden;position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));
+  width:min(360px,calc(100% - 24px));max-height:calc(100% - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);
   border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:10px;z-index:2;box-sizing:border-box;
   backdrop-filter:blur(6px)}
 #grip{display:none}
@@ -35,11 +35,11 @@ h3{font-size:13px;margin:8px 0 4px}
 
 fieldset{border:1px solid var(--line);border-radius:6px;padding:8px 10px 10px;margin:0;display:grid;gap:8px;min-width:0}
 legend{font-size:12px;font-weight:600;padding:0 4px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.field{display:grid;gap:3px;min-width:0}
+.field{display:grid;gap:3px;min-width:0;align-content:start}
 .field label,.lbl{font-size:12px;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-input[type=number],input[type=search],input[type=text],select{font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:4px;background:var(--field);color:var(--fg);width:100%;box-sizing:border-box;min-width:0}
+input[type=number],input[type=search],input[type=text],select{font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:4px;background:var(--field);color:var(--fg);width:100%;box-sizing:border-box;min-width:0;height:2.3em}
 input[type=number]{font-family:var(--f-mono);font-size:12.5px}
 .checks{display:grid;gap:3px}
 .checks label{display:block;font-size:12.5px;cursor:pointer;padding-left:22px;text-indent:-22px}
@@ -95,6 +95,8 @@ td,th{padding:2px 6px 2px 0;text-align:left;vertical-align:top}
 th{font-weight:600}
 td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap}
 tr.mod td.n{color:var(--accent)}
+.rv{table-layout:fixed}
+.rv th:first-child{width:30%}
 .rv input{width:100%;padding:2px 4px;font-size:12px}
 .rv td{padding:1px 4px 1px 0}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;margin:0}
@@ -129,3 +131,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   input,select{font-size:16px !important}
   .attr{display:none}
 }
+
+/* Branding */
+.brand{display:block;height:26px;flex:none;background:var(--fg);-webkit-mask:url(img/logo.png) left center/contain no-repeat;mask:url(img/logo.png) left center/contain no-repeat}
+.attr a.site{color:var(--fg);font-weight:600;font-size:12px;text-decoration:none}
+.attr a.site:hover{text-decoration:underline}
+@media (max-width:700px){.brand{height:20px}.attr{display:block}}
+#panel.collapsed .attr{display:none !important}

@@ -16,6 +16,7 @@
 
 <aside id="panel" aria-label="Controls">
   <button id="grip" type="button" aria-expanded="true" aria-label="Show or hide panel"><span></span></button>
+  <a class="brand" href="https://therunwaycentreline.com" target="_blank" rel="noopener" aria-label="The Runway Centreline"></a>
   <header>
     <h1 id="title">Loading…</h1>
     <div class="sub" id="cfg"></div>
@@ -51,15 +52,6 @@
         <div class="field"><label for="span">Wingspan <span class="u">m</span></label><input id="span" type="number" inputmode="decimal" min="0" step="0.01"></div>
         <div class="field"><label for="vat">Vat <span class="u">kt</span></label><input id="vat" type="number" inputmode="decimal" min="0" step="1"></div>
       </div>
-      <details class="mini">
-        <summary>Work out Vat from stall speeds</summary>
-        <div class="grid3">
-          <div class="field"><label for="vso">Vso <span class="u">kt</span></label><input id="vso" type="number" inputmode="decimal" min="0"></div>
-          <div class="field"><label for="vs1g">Vs1g <span class="u">kt</span></label><input id="vs1g" type="number" inputmode="decimal" min="0"></div>
-          <div class="field"><span class="lbl">&nbsp;</span><button id="b-vat" type="button">Use</button></div>
-        </div>
-        <div class="note">Vat is the greater of 1.3 Vso and 1.23 Vs1g at maximum certificated landing mass (1.8.2 Note).</div>
-      </details>
       <div id="derived" class="derived" aria-live="polite"></div>
     </fieldset>
 
@@ -111,7 +103,7 @@
     <div id="detail"><p class="sub">Click or tap a surface on the map, or a name in the Surfaces list, to see its dimensions, clause and obstacle rule.</p></div>
   </section>
 
-  <footer class="attr">Educational tool, not for aerodrome safeguarding decisions. Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runways: OurAirports.</footer>
+  <footer class="attr"><a class="site" href="https://therunwaycentreline.com" target="_blank" rel="noopener">The Runway Centreline</a><br>Educational tool, not for aerodrome safeguarding decisions. Imagery © Esri, Maxar, Earthstar Geographics. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runways: OurAirports.</footer>
 </aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
