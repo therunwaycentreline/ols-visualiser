@@ -15,7 +15,14 @@
 import { resolveLegacy, resolveNew } from './resolve.js';
 
 export const STRIP_EXTENSION_DEFAULT = 60;
-const ARC_SEGMENTS = 48; // per semicircle
+/**
+ * Strip beyond each runway end (3.4.2): 60 m for code 2, 3 or 4; 60 m for code 1
+ * instrument; 30 m for code 1 non-instrument. Used when no value is supplied.
+ */
+export const stripExtensionFor = (codeNumber, approach) => (codeNumber === 1 && approach === 'NI' ? 30 : 60);
+// Per semicircle. 144 keeps the chord inside the true arc by at most 0.24 m at
+// 4 000 m radius and 0.64 m at 10 750 m (was 48: 2.1 m and 5.7 m; Stage 5 check).
+const ARC_SEGMENTS = 144;
 const EPS = 1e-9;
 
 // ---------------------------------------------------------------- runway model
@@ -648,7 +655,9 @@ function buildRegime(resolved, builders, base) {
 
 /** Geometry for both regimes. cfg from deriveConfig, rw as runwayModel input. */
 export function buildGeometry(std, cfg, rw) {
-  const m = runwayModel(rw);
+  // Unsupplied strip extensions take the 3.4.2 value for this code and approach type.
+  const se = stripExtensionFor(cfg.codeNumber, cfg.approach);
+  const m = runwayModel({ ...rw, ends: [0, 1].map(i => ({ stripExtension: se, ...(rw.ends?.[i] || {}) })) });
   const base = { std, cfg, m };
   return {
     runway: m,

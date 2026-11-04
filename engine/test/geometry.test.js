@@ -261,3 +261,21 @@ test('transitional lower edge runs along the strip to the strip end beyond a dis
   assert.equal(surf(g, 'ofs_transitional').instances[0].facets.length,
     surf(A, 'ofs_transitional').instances[0].facets.length + 2);
 });
+
+test('strip beyond runway end defaults by 3.4.2: 30 m code 1 NI, else 60 m', () => {
+  const c1ni = deriveConfig({ arfl: 700, wingspan: 11, vat: 55, runwayWidth: 23, approach: 'NI', mtomOver5700: false }, std);
+  const c1npa = deriveConfig({ arfl: 700, wingspan: 11, vat: 55, runwayWidth: 23, approach: 'NPA', mtomOver5700: false }, std);
+  const rw = { length: 900, ends: [{ elevation: 0 }, { elevation: 0 }] };
+  assert.deepEqual(buildGeometry(std, c1ni, rw).runway.stripEndX, [-30, 930]);
+  assert.deepEqual(buildGeometry(std, c1npa, rw).runway.stripEndX, [-60, 960]);
+  assert.deepEqual(buildGeometry(std, c1ni, { ...rw, ends: [{ elevation: 0, stripExtension: 45 }, { elevation: 0 }] }).runway.stripEndX, [-45, 930]);
+  assert.deepEqual(A.runway.stripEndX, [-60, 3060]);
+});
+
+test('arcs: inner horizontal chord stays within 0.3 m of the 4 000 m radius', () => {
+  const ihs = inst(A, 'legacy_inner_horizontal');
+  const [xa, xb] = A.runway.stripEndX;
+  // Probe just inside the true arc at 45° off the far strip end: must still be covered.
+  const r = 4000 - 0.3, a = Math.PI / 4 + 0.0123;
+  assert.ok(heightAt(ihs.facets, xb + r * Math.cos(a), r * Math.sin(a)) !== null);
+});

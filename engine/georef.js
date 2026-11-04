@@ -123,7 +123,7 @@ export function findRunway(data, icao, ident) {
  * Returns { idents, geo, rw, values, warnings } where values mirrors the
  * inputs as { value, source } for display.
  */
-export function runwayInputs(row, overrides = {}) {
+export function runwayInputs(row, overrides = {}, { stripExtension = 60 } = {}) {
   const warnings = [];
   const adElev = overrides.aerodromeElevation != null
     ? v(overrides.aerodromeElevation, SRC.user)
@@ -146,7 +146,7 @@ export function runwayInputs(row, overrides = {}) {
       displaced: pick('displaced', r.dthrFt != null ? r.dthrFt * FT : null, v(0, SRC.default)),
       elevation,
       clearway: pick('clearway', null, v(0, SRC.default)),
-      stripExtension: pick('stripExtension', null, v(60, SRC.default)),
+      stripExtension: pick('stripExtension', null, v(stripExtension, SRC.default, '3.4.2')),
     };
   });
   const geo = {

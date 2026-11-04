@@ -2,7 +2,7 @@
 // the panel, the map and the deck.gl overlay.
 
 import { APPROACH_TYPES, deriveConfig } from '../engine/derive.js';
-import { buildGeometry, heightAt } from '../engine/geometry.js';
+import { buildGeometry, heightAt, stripExtensionFor } from '../engine/geometry.js';
 import { findRunway, runwayInputs } from '../engine/georef.js';
 import { indexSurfaces, lowestIndexed, diffGrid, DIFF_CLASSES } from '../engine/compare.js';
 import { PRESETS } from './presets.js';
@@ -76,14 +76,16 @@ function compute() {
   const errors = [];
   const row = findRunway(DATA, S.icao, S.rwy);
   if (!row) return { errors: [`${S.icao} runway ${S.rwy} not in the dataset`] };
-  const I = runwayInputs(row, S.ov);
-  const width = S.width ?? (I.widthM ? Math.round(I.widthM) : null); // whole metres: 148 ft must not read as over 45 m
+  const widthData = row.wid_ft != null ? Math.round(row.wid_ft * 0.3048) : null; // whole metres: 148 ft must not read as over 45 m
+  const width = S.width ?? widthData;
   const cfg = deriveConfig({
     arfl: S.arfl, wingspan: S.wingspan, vat: S.vat, runwayWidth: width, approach: S.approach,
     digitalGoAroundSteering: S.dga, departureTurn: S.turn, mtomOver5700: S.heavy,
     circlingOrCircuits: S.circ, instrumentDeparture: S.idep ?? undefined,
   }, STD);
   errors.push(...cfg.errors);
+  // Strip beyond each end defaults by code and approach type (3.4.2).
+  const I = runwayInputs(row, S.ov, { stripExtension: stripExtensionFor(cfg.codeNumber, cfg.approach) });
   if (I.rw.ends.some(e => e.elevation == null)) errors.push('Threshold elevation missing: enter it under Runway values');
   let G = null;
   if (!errors.length) {
@@ -146,6 +148,10 @@ function layers() {
   const showSurf = S.mode !== 'diff';
   const sel = S.sel;
   return [
+    new deck.BitmapLayer({
+      id: 'diff', visible: S.mode === 'diff' && !!diffImg, image: diffImg?.image, bounds: diffImg?.bounds ?? [0, 0, 1, 1],
+      opacity: 0.85, textureParameters: { minFilter: 'nearest', magFilter: 'nearest' }, parameters: ON_TOP,
+    }),
     new deck.PolygonLayer({ id: 'rwy', data: [{ p: M.pave }], getPolygon: d => d.p, getFillColor: [245, 245, 245, 150], stroked: false, _full3d: true, parameters: ON_TOP }),
     new deck.PathLayer({ id: 'thr', data: M.thr, getPath: d => d, getColor: [20, 200, 120, 255], widthUnits: 'pixels', getWidth: 3, parameters: ON_TOP }),
     new deck.SolidPolygonLayer({
@@ -205,7 +211,8 @@ const mapReady = new Promise(res => map.on('load', () => {
   res();
 }));
 
-// Difference grid as a draped image (MapLibre raster layers drape on the terrain)
+// Difference grid as an image over the map
+let diffImg = null;
 const canvas = document.createElement('canvas');
 function drawDiff() {
   const key = JSON.stringify([S.icao, S.rwy, S.arfl, S.wingspan, S.vat, S.approach, S.width, S.circ, S.idep, S.heavy, S.turn, S.dga, S.ov, S.diffSet]);
@@ -230,19 +237,16 @@ function drawDiff() {
   }
   ctx.putImageData(img, 0, 0);
   const x1 = g.x0 + g.nx * g.cell, y1 = g.y0 + g.ny * g.cell;
-  const coordinates = [[g.x0, y1], [x1, y1], [x1, g.y0], [g.x0, g.y0]].map(([x, y]) => M.W([x, y, 0]).slice(0, 2));
-  const src = map.getSource('diff');
-  if (src) src.updateImage({ url: canvas.toDataURL(), coordinates });
-  else {
-    map.addSource('diff', { type: 'image', url: canvas.toDataURL(), coordinates });
-    map.addLayer({ id: 'diff', type: 'raster', source: 'diff', paint: { 'raster-resampling': 'nearest', 'raster-opacity': 0.85, 'raster-fade-duration': 0 } }, 'bld');
-  }
+  // deck.gl bitmap drawn over the terrain: MapLibre image sources draped on
+  // terrain were clipped along a tile edge (Stage 5 check, YPPH).
+  const c = ([x, y]) => M.W([x, y, 0]).slice(0, 2);
+  diffImg = { image: canvas.toDataURL(), bounds: [c([g.x0, g.y0]), c([g.x0, y1]), c([x1, y1]), c([x1, g.y0])] };
+  render();
   const area = g.cell * g.cell / 1e6;
   $('diff-legend').innerHTML = DIFF_CLASSES.map((c, i) =>
     `<li><span class="sw" style="background:${DIFF_COLOURS[i]}"></span>${esc(c.label)}<span class="n">${counts[i] ? (counts[i] * area).toFixed(1) + ' km²' : ''}</span></li>`).join('');
-  return coordinates;
 }
-function clearDiff() { if (map.getLayer('diff')) map.setLayoutProperty('diff', 'visibility', 'none'); }
+function clearDiff() { if (diffImg) { diffImg = null; render(); } }
 
 map.on('mousemove', e => {
   if (S.mode !== 'diff' || !M?.G) return;
@@ -446,7 +450,7 @@ async function update({ recentre = false } = {}) {
     map.getSource('cl').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[m.row.le_lon, m.row.le_lat], [m.row.he_lon, m.row.he_lat]] } });
   }
   render();
-  if (M?.G && S.mode === 'diff') { map.getLayer('diff') && map.setLayoutProperty('diff', 'visibility', 'visible'); drawDiff(); }
+  if (M?.G && S.mode === 'diff') drawDiff();
   else clearDiff();
   const rk = `${S.icao}/${S.rwy}`;
   if (M?.G && (recentre || rk !== lastRunwayKey)) { camera(lastRunwayKey !== null); lastRunwayKey = rk; }
