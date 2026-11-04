@@ -363,8 +363,8 @@ const LEGACY = {
     const dims = legacyApproachDims(a);
     const top = ihsTop(ctx);
     const edge = runwayTransitionalEdge(ctx.m, dims.D, dims.W / 2, dims.sections);
-    const facets = [edge, ...stripBeyondApproach(ctx.m, dims.D, dims.W / 2)]
-      .flatMap(e => transitional(e, val(s, 'Slope'), top));
+    const facets = [...transitional(edge, val(s, 'Slope'), top),
+      ...stripBeyondApproach(ctx.m, dims.D, dims.W / 2, dims.sections[0].div, val(s, 'Slope'), top)];
     return [instance(null, facets, transitionalPoints(ctx.m, dims.W / 2, val(s, 'Slope'), top))];
   },
 
@@ -439,17 +439,32 @@ function runwayTransitionalEdge(m, D, hw, sections) {
 }
 
 /**
- * Strip edge between an approach inner edge and the strip end, where the strip
- * runs further out than the approach inner edge (displaced threshold, or strip
- * extension beyond the approach inner edge distance). The transitional lower
- * edge runs along the strip to its end; where the approach side transitional is
- * lower, lowestAt picks it. Returns zero, one or two edges (+y side).
+ * Transitional beside the strip between an approach inner edge and the strip
+ * end, where the strip runs further out than the approach inner edge (displaced
+ * threshold, or strip extension beyond the approach inner edge distance).
+ * Lower edge along the strip edge (level at threshold elevation beyond the
+ * threshold), rising at `slope` to `top`, clipped to outside the approach
+ * footprint: the approach governs over its own footprint and the transitional
+ * protects only to the side of it (Dan, 4 Nov 2026; transitional surfaces protect
+ * landing and go-around, not take-off). `div` is the approach first section
+ * divergence. Returns facets, both sides.
  */
-function stripBeyondApproach(m, D, hw) {
+function stripBeyondApproach(m, D, hw, div, slope, top) {
   const out = [];
   const [s1, s2] = m.stripEndX;
-  if (s1 < -D - EPS) out.push([s1, -D].map(x => [x, hw, m.profile(x)]));
-  if (s2 > m.Lt + D + EPS) out.push([m.Lt + D, s2].map(x => [x, hw, m.profile(x)]));
+  const piece = (xIn, xOut, zt) => {
+    // xIn: approach inner edge x; xOut: strip end x (further from the runway).
+    if (zt >= top) return;
+    const yTop = hw + (top - zt) / slope, len = Math.abs(xOut - xIn);
+    const yOut = Math.min(hw + div * len, yTop);
+    const z = y => zt + slope * (y - hw);
+    let v = [[xIn, hw, zt], [xOut, yOut, z(yOut)], [xOut, yTop, top], [xIn, yTop, top]];
+    if (xOut < xIn) v = [v[1], v[0], v[3], v[2]]; // keep increasing x along the lower boundary
+    const f = F(dedupe(v), { part: 'beside strip, beyond approach inner edge' });
+    if (f.v.length >= 3) out.push(f, mirrorY(f));
+  };
+  if (s1 < -D - EPS) piece(-D, s1, m.zt[0]);
+  if (s2 > m.Lt + D + EPS) piece(m.Lt + D, s2, m.zt[1]);
   return out;
 }
 
@@ -490,7 +505,7 @@ const NEW = {
     const a = ofsApproachDims(ctx.byId.ofs_approach);
     const top = ofsTop(ctx), sl = val(s, 'Slope (maximum)');
     const edge = runwayTransitionalEdge(ctx.m, a.D, a.W / 2, [{ length: a.L, slope: a.slope, div: a.div }]);
-    const facets = [edge, ...stripBeyondApproach(ctx.m, a.D, a.W / 2)].flatMap(e => transitional(e, sl, top));
+    const facets = [...transitional(edge, sl, top), ...stripBeyondApproach(ctx.m, a.D, a.W / 2, a.div, sl, top)];
     return [instance(null, facets, transitionalPoints(ctx.m, a.W / 2, sl, top))];
   },
 

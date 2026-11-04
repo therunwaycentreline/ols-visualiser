@@ -279,3 +279,23 @@ test('arcs: inner horizontal chord stays within 0.3 m of the 4 000 m radius', ()
   const r = 4000 - 0.3, a = Math.PI / 4 + 0.0123;
   assert.ok(heightAt(ihs.facets, xb + r * Math.cos(a), r * Math.sin(a)) !== null);
 });
+
+test('strip-piece transitional is clipped to outside the approach footprint (config D, both regimes)', () => {
+  const cfgD = deriveConfig({ arfl: 1400, wingspan: 28, vat: 119, runwayWidth: 30, approach: 'NPA', circlingOrCircuits: false }, std);
+  const D = buildGeometry(std, cfgD, { length: 1800, ends: [{ elevation: 300, displaced: 200 }, { elevation: 306 }] });
+  for (const [appId, trId] of [['ofs_approach', 'ofs_transitional'], ['legacy_approach', 'legacy_transitional']]) {
+    const app = inst(D, appId, 1), tr = surf(D, trId).instances[0];
+    // Inside the approach footprint behind its inner edge: no transitional; the approach governs.
+    for (const [x, y] of [[-250, 0], [-250, 40], [-226.9, 50]]) {
+      if (heightAt(app.facets, x, y) === null) continue;
+      assert.equal(heightAt(tr.facets, x, y), null, `${trId} at ${x},${y}`);
+    }
+    // Lowest surface inside the approach footprint is never below the approach there.
+    const reg = appId.startsWith('ofs') ? D.new.filter(s => s.set === 'OFS') : D.legacy;
+    for (let x = -255; x <= -70; x += 15) for (let y = 2.5; y <= 150; y += 5) { // off the footprint edge, where the surfaces meet
+      const za = heightAt(app.facets, x, y);
+      if (za === null || heightAt(app.facets, x, y + 0.5) === null) continue; // strictly inside the footprint
+      assert.ok(lowestAt(reg, x, y).z >= za - 1e-6 || lowestAt(reg, x, y).id !== trId, `${appId} undercut by ${trId} at ${x},${y}`);
+    }
+  }
+});
