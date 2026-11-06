@@ -1,5 +1,13 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>OLS v OFS/OES</title>
+<title>Airport OLS v OFS/OES</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Airport OLS v OFS/OES Visualiser">
+<meta property="og:description" content="See how the legacy ICAO Annex 14 obstacle limitation surfaces compare with the new obstacle free and obstacle evaluation surfaces at a real airport, in 3D.">
+<meta property="og:url" content="https://therunwaycentreline.github.io/ols-visualiser/">
+<meta property="og:image" content="https://therunwaycentreline.github.io/ols-visualiser/app/img/preview.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="Compare legacy ICAO Annex 14 obstacle limitation surfaces with the Amendment 18 obstacle free and obstacle evaluation surfaces at a real airport.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
 <link rel="stylesheet" href="app/style.css">
@@ -103,7 +111,19 @@
     <div id="detail"><p class="sub">Click or tap a surface on the map, or a name in the Surfaces list, to see its dimensions, clause and obstacle rule.</p></div>
   </section>
 
-  <footer class="attr"><a class="site" href="https://therunwaycentreline.com" target="_blank" rel="noopener">The Runway Centreline</a><br>Educational tool, not for aerodrome safeguarding decisions. Imagery: Powered by Esri. Source: Esri, Vantor, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community. Terrain: Mapzen/AWS. Buildings: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors. Runways: OurAirports.</footer>
+  <footer class="attr">
+    <p class="disc">Educational tool, not for aerodrome safeguarding decisions. Runway data comes from open sources and is not surveyed; check values against the AIP.</p>
+    <a class="site" href="https://therunwaycentreline.com" target="_blank" rel="noopener">The Runway Centreline</a>
+    <p>Imagery: Powered by Esri. Terrain: Mapzen terrain tiles on AWS. Buildings: © OpenMapTiles, © OpenStreetMap contributors, via OpenFreeMap. Runways: OurAirports.</p>
+    <details class="credits">
+      <summary>Data sources and credits</summary>
+      <p><b>Imagery:</b> Powered by Esri. Source: Esri, Vantor, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community.</p>
+      <p><b>Terrain:</b> Mapzen terrain tiles, AWS Open Data. ArcticDEM terrain data DEM(s) were created from DigitalGlobe, Inc., imagery and funded under National Science Foundation awards 1043681, 1559691, and 1542736. Australia terrain data © Commonwealth of Australia (Geoscience Australia) 2017. Austria terrain data © offene Daten Österreichs, Digitales Geländemodell (DGM) Österreich. Canada terrain data contains information licensed under the Open Government Licence, Canada. Europe terrain data produced using Copernicus data and information funded by the European Union, EU-DEM layers. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration. Mexico terrain data source: INEGI, Continental relief, 2016. New Zealand terrain data Copyright 2011 Crown copyright (c) Land Information New Zealand and the New Zealand Government (All rights reserved). Norway terrain data © Kartverket. United Kingdom terrain data © Environment Agency copyright and/or database right 2015. All rights reserved. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.</p>
+      <p><b>Buildings:</b> OpenFreeMap; © OpenMapTiles; © OpenStreetMap contributors. Heights are indicative and are not obstacle data.</p>
+      <p><b>Runways and airports:</b> OurAirports (public domain). Coordinates are runway ends, not surveyed thresholds.</p>
+      <p><b>Standards:</b> ICAO Annex 14 Volume I, Chapter 4 (legacy) and Amendment 18 (applicable 21 November 2030).</p>
+    </details>
+  </footer>
 </aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
