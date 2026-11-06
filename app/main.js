@@ -6,6 +6,7 @@ import { buildGeometry, heightAt, stripExtensionFor } from '../engine/geometry.j
 import { findRunway, runwayInputs } from '../engine/georef.js';
 import { indexSurfaces, lowestIndexed, diffGrid, DIFF_CLASSES } from '../engine/compare.js';
 import { PRESETS } from './presets.js';
+import { ESRI_IMAGERY_TILES } from './config.js';
 import { SETS, NAMES, PLAIN, COUNTERPART, MODES, APPROACH_LABELS } from './text.js';
 
 const $ = id => document.getElementById(id);
@@ -128,7 +129,7 @@ const visible = s => S.mode !== 'diff' && inMode(s) && S.on.has(s.id);
 const map = window.map = new maplibregl.Map({
   container: 'map', attributionControl: false, maxPitch: 80, center: [153.117, -27.384], zoom: 12, pitch: 60,
   style: { version: 8, sources: {
-    img: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19 },
+    img: { type: 'raster', tiles: [ESRI_IMAGERY_TILES], tileSize: 256, maxzoom: 19 },
     omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' },
     dem: { type: 'raster-dem', encoding: 'terrarium', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 14 },
   }, layers: [
@@ -148,8 +149,8 @@ function layers() {
   const showSurf = S.mode !== 'diff';
   const sel = S.sel;
   return [
-    new deck.BitmapLayer({
-      id: 'diff', visible: S.mode === 'diff' && !!diffImg, image: diffImg?.image, bounds: diffImg?.bounds ?? [0, 0, 1, 1],
+    S.mode === 'diff' && diffImg && new deck.BitmapLayer({
+      id: 'diff', image: diffImg.image, bounds: diffImg.bounds,
       opacity: 0.85, textureParameters: { minFilter: 'nearest', magFilter: 'nearest' }, parameters: ON_TOP,
     }),
     new deck.PolygonLayer({ id: 'rwy', data: [{ p: M.pave }], getPolygon: d => d.p, getFillColor: [245, 245, 245, 150], stroked: false, _full3d: true, parameters: ON_TOP }),
