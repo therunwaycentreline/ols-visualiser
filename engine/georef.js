@@ -8,7 +8,7 @@
 // surface heights: Annex 14 dimensions are horizontal and heights are planar.
 //
 // Default runway inputs come from the trimmed OurAirports dataset
-// (data/runways_paved.json). Every value carries its source so the UI can
+// (data/runways.json). Every value carries its source so the UI can
 // show it and the user can override it (confirmed by Dan, 3 Nov 2026).
 
 const A = 6378137.0;               // WGS84 semi-major axis (m)

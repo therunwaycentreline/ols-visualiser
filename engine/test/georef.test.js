@@ -6,7 +6,7 @@ import { deriveConfig } from '../derive.js';
 import { buildGeometry } from '../geometry.js';
 
 const root = new URL('../../', import.meta.url);
-const data = JSON.parse(readFileSync(new URL('data/runways_paved.json', root)));
+const data = JSON.parse(readFileSync(new URL('data/runways.json', root)));
 const std = JSON.parse(readFileSync(new URL('data/ols_standards.json', root)));
 
 // Independent check: Vincenty inverse on WGS84 (distance m, initial bearing deg).

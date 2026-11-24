@@ -35,7 +35,7 @@ The whole configuration is kept in the URL, so a view can be bookmarked or share
 
 - `index.html`, `app/`: the page (MapLibre GL 4.7.1 with deck.gl 9.0.38).
 - `engine/`: pure functions: `derive.js` (codes, ADG, columns), `resolve.js` (dimensions and modifiers), `geometry.js` (surfaces in a runway frame), `georef.js` (runway frame to WGS84), `compare.js` (difference grid).
-- `data/ols_standards.json`: every dimension, footnote rule, modifier and decision, distilled from Annex 14. `data/runways_paved.json`: open, paved runways from OurAirports.
+- `data/ols_standards.json`: every dimension, footnote rule, modifier and decision, distilled from Annex 14. `data/runways.json`: open runways from OurAirports with both end coordinates, any surface (water runways, heliports and seaplane bases excluded); rebuilt with `scripts/build_runways.py`.
 
 ## Data sources and credits
 

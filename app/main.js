@@ -55,7 +55,7 @@ function writeHash() {
 
 // ---------------------------------------------------------------- data
 
-const [STD, DATA] = await Promise.all(['./data/ols_standards.json', './data/runways_paved.json'].map(u => fetch(u).then(r => r.json())));
+const [STD, DATA] = await Promise.all(['./data/ols_standards.json', './data/runways.json'].map(u => fetch(u).then(r => r.json())));
 const F = Object.fromEntries(DATA.fields.map((k, i) => [k, i]));
 const RWYS = new Map();
 for (const r of DATA.rows) {
@@ -304,7 +304,7 @@ function renderRunways() {
     const on = r.le === S.rwy || r.he === S.rwy;
     const dims = r.len ? `${Math.round(r.len * 0.3048)}${r.wid ? ' × ' + Math.round(r.wid * 0.3048) : ''} m` : '';
     return `<button type="button" data-r="${esc(r.le)}" aria-pressed="${on}">${esc(r.le)}/${esc(r.he)} <small>${dims}</small></button>`;
-  }).join('') : '<span class="sub">No paved runways with both end coordinates for this airport.</span>';
+  }).join('') : '<span class="sub">No runways with both end coordinates for this airport.</span>';
 }
 
 function renderDerived(m) {
@@ -474,7 +474,7 @@ function search() {
   hits = [...a.sort((x, y) => x.icao.length - y.icao.length || x.icao.localeCompare(y.icao)), ...b].slice(0, 8);
   hi = 0;
   qList.innerHTML = hits.length ? hits.map((x, i) => `<li role="option" data-i="${i}" aria-selected="${i === hi}"><b>${esc(x.icao)}</b><span>${esc(x.name)} <span class="src">${esc(x.country)}</span></span></li>`).join('')
-    : '<li class="sub">No match in the paved runway dataset</li>';
+    : '<li class="sub">No match in the runway dataset</li>';
   qList.hidden = false;
 }
 function pickAirport(x) {
